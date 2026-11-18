@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "444363013083",
+    "project_id": "wisdom-central-library",
+    "storage_bucket": "wisdom-central-library.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:444363013083:android:549b8015de6f37e7d345fe",
+        "android_client_info": {
+          "package_name": "com.example.wisdom_central_library"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFmQAz1SocGpe1fx84_W4HH3P0JIZMPEs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
