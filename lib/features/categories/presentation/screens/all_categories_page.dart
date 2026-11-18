@@ -1,34 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:watch_it/watch_it.dart';
 import 'package:wisdom_central_library/core/routes/app_navigation.dart';
 import 'package:wisdom_central_library/core/themes/app_colors.dart';
 import 'package:wisdom_central_library/core/themes/app_textstyle.dart';
+import 'package:wisdom_central_library/features/categories/presentation/logic/bloc/category_bloc.dart';
+import 'package:wisdom_central_library/features/categories/presentation/logic/bloc/category_event.dart';
+import 'package:wisdom_central_library/features/categories/presentation/logic/bloc/category_state.dart';
+import 'package:wisdom_central_library/features/categories/presentation/screens/subcategories_page.dart';
 
-// نموذج بيانات مبسط للعرض الستاتيكي فقط
-class _StaticCategory {
-  final String id;
-  final String title;
-
-  const _StaticCategory({required this.id, required this.title});
-}
-
-class AllCategoriesPage extends StatelessWidget {
+class AllCategoriesPage extends WatchingWidget {
   const AllCategoriesPage({super.key});
-
-  // بيانات تجريبية للتصنيفات
-  static const List<_StaticCategory> _categories = [
-    _StaticCategory(id: 'cat_1', title: 'الأدب والرواية'),
-    _StaticCategory(id: 'cat_2', title: 'البرمجة والتقنية'),
-    _StaticCategory(id: 'cat_3', title: 'التاريخ والحضارة'),
-    _StaticCategory(id: 'cat_4', title: 'تطوير الذات'),
-    _StaticCategory(id: 'cat_5', title: 'العلوم والفيزياء'),
-    _StaticCategory(id: 'cat_6', title: 'الفلسفة وعلم النفس'),
-    _StaticCategory(id: 'cat_7', title: 'الاقتصاد وإدارة الأعمال'),
-    _StaticCategory(id: 'cat_8', title: 'كتب الأطفال والناشئة'),
-  ];
 
   @override
   Widget build(BuildContext context) {
+    final bloc = di<CategoryBloc>();
+
+    final state =
+        watchStream(
+          (CategoryBloc b) => b.stream,
+          initialValue: bloc.state,
+        ).data ??
+        bloc.state;
+
+    registerStreamHandler(
+      select: (CategoryBloc b) => b.stream,
+      handler: (context, snapshot, cancel) {
+        final currentState = snapshot.data;
+        if (currentState == null) return;
+
+        if (ModalRoute.of(context)?.isCurrent != true) return;
+
+        if (currentState.navigationTarget ==
+                CategoryNavigationTarget.subcategories &&
+            currentState.selectedCategory != null) {
+          bloc.add(const ClearCategoryNavigationEvent());
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SubcategoriesPage(
+                parentCategory: currentState.selectedCategory!,
+                subcategories: currentState.currentSubcategories,
+              ),
+            ),
+          );
+        } else if (currentState.navigationTarget ==
+                CategoryNavigationTarget.books &&
+            currentState.selectedCategory != null) {
+          final selected = currentState.selectedCategory!;
+          bloc.add(const ClearCategoryNavigationEvent());
+          pushTo(context, '/categoryBooks/${selected.id}', selected.title);
+        }
+      },
+    );
+
+    final categories = state.rootCategories;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -60,7 +87,7 @@ class AllCategoriesPage extends StatelessWidget {
           ),
         ),
       ),
-      body: _categories.isEmpty
+      body: categories.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -91,9 +118,9 @@ class AllCategoriesPage extends StatelessWidget {
                   mainAxisSpacing: 16,
                   childAspectRatio: 1.25,
                 ),
-                itemCount: _categories.length,
+                itemCount: categories.length,
                 itemBuilder: (context, index) {
-                  final category = _categories[index];
+                  final category = categories[index];
 
                   return Container(
                     decoration: BoxDecoration(
@@ -116,13 +143,7 @@ class AllCategoriesPage extends StatelessWidget {
                       color: Colors.transparent,
                       borderRadius: BorderRadius.circular(20),
                       child: InkWell(
-                        onTap: () {
-                          pushTo(
-                            context,
-                            '/categoryBooks/${category.id}',
-                            category.title,
-                          );
-                        },
+                        onTap: () => bloc.add(SelectCategoryEvent(category)),
                         borderRadius: BorderRadius.circular(20),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
@@ -136,7 +157,9 @@ class AllCategoriesPage extends StatelessWidget {
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  Iconsax.folder_2,
+                                  category.hasSubcategories
+                                      ? Iconsax.folder_2
+                                      : Iconsax.book_1,
                                   size: 24,
                                   color: AppColors.prim,
                                 ),

@@ -16,6 +16,11 @@ import 'package:wisdom_central_library/features/auth/domain/usecases/sign_out_us
 import 'package:wisdom_central_library/features/auth/domain/usecases/sign_up_usecase.dart';
 import 'package:wisdom_central_library/features/auth/domain/usecases/update_user_data_usecase.dart';
 import 'package:wisdom_central_library/features/auth/presentation/managers/auth_manager.dart';
+import 'package:wisdom_central_library/features/categories/data/repositories/category_repository_impl.dart';
+import 'package:wisdom_central_library/features/categories/data/datasources/category_remote_data_source.dart';
+import 'package:wisdom_central_library/features/categories/domain/repositories/category_repository.dart';
+import 'package:wisdom_central_library/features/categories/domain/usecase/get_all_categories_usecase.dart';
+import 'package:wisdom_central_library/features/categories/presentation/logic/bloc/category_bloc.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -85,5 +90,28 @@ void setupLocator() {
       updateUserDataUseCase: sl<UpdateUserDataUseCase>(),
       signInWithGoogleUseCase: sl<SignInWithGoogleUseCase>(),
     ),
+  );
+
+  // ----------------- Categories Feature -----------------
+  //  Data Sources
+  sl.registerLazySingleton<CategoryRemoteDataSource>(
+    () => CategoryRemoteDataSourceImpl(firestore: sl<FirebaseFirestore>()),
+  );
+
+  // 2. Repositories
+  sl.registerLazySingleton<CategoryRepository>(
+    () => CategoryRepositoryImpl(
+      remoteDataSource: sl<CategoryRemoteDataSource>(),
+    ),
+  );
+
+  // 3. Use Cases
+  sl.registerLazySingleton<GetAllCategoriesUseCase>(
+    () => GetAllCategoriesUseCase(sl<CategoryRepository>()),
+  );
+
+  // 4. BLoC
+  sl.registerLazySingleton<CategoryBloc>(
+    () => CategoryBloc(getAllCategoriesUseCase: sl<GetAllCategoriesUseCase>()),
   );
 }
