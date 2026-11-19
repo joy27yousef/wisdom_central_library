@@ -10,7 +10,6 @@ import 'package:wisdom_central_library/features/auth/presentation/screen/forget_
 import 'package:wisdom_central_library/features/auth/presentation/screen/login_page.dart';
 import 'package:wisdom_central_library/features/auth/presentation/screen/signup_page.dart';
 import 'package:wisdom_central_library/features/auth/presentation/screen/verify_email_page.dart';
-import 'package:wisdom_central_library/features/books/presentation/screens/book_details_screen.dart';
 import 'package:wisdom_central_library/features/books/presentation/screens/category_books_screen.dart';
 import 'package:wisdom_central_library/features/categories/presentation/screens/all_categories_page.dart';
 import 'package:wisdom_central_library/features/favorites/presentation/screens/favorites_screen.dart';
@@ -122,7 +121,7 @@ class AppRoutes {
         // Book
         GoRoute(
           path: bookDetails,
-          builder: (context, state) => const BookDetailsScreen(),
+          builder: (context, state) => const CategoryBooksScreen(),
         ),
 
         // Favorites

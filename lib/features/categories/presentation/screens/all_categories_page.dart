@@ -49,6 +49,7 @@ class AllCategoriesPage extends WatchingWidget {
             currentState.selectedCategory != null) {
           final selected = currentState.selectedCategory!;
           bloc.add(const ClearCategoryNavigationEvent());
+
           pushTo(context, '/categoryBooks/${selected.id}', selected.title);
         }
       },

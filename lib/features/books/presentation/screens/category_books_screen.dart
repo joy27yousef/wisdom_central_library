@@ -1,38 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:watch_it/watch_it.dart';
 import 'package:wisdom_central_library/core/routes/app_navigation.dart';
 import 'package:wisdom_central_library/core/routes/app_routes.dart';
+import 'package:wisdom_central_library/core/shared/widgets/app_cached_image.dart';
 import 'package:wisdom_central_library/core/themes/app_colors.dart';
 import 'package:wisdom_central_library/core/themes/app_textstyle.dart';
+import 'package:wisdom_central_library/features/books/domain/entities/book_entity.dart';
+import 'package:wisdom_central_library/features/books/presentation/logic/bloc/category_books_bloc.dart';
+import 'package:wisdom_central_library/features/books/presentation/logic/bloc/category_books_event.dart';
+import 'package:wisdom_central_library/features/books/presentation/logic/bloc/category_books_state.dart';
+import 'package:wisdom_central_library/features/categories/presentation/logic/bloc/category_bloc.dart';
 
-// نماذج بيانات مبسطة للعرض الستاتيكي فقط
-class _StaticBook {
-  final String id;
-  final String title;
-  final String author;
-  final String subCategoryId;
-  final String coverUrl;
-  final String publishingHouse;
-  final int numbersPages;
-
-  const _StaticBook({
-    required this.id,
-    required this.title,
-    required this.author,
-    required this.subCategoryId,
-    this.coverUrl = '',
-    this.publishingHouse = 'دار الحكمة',
-    this.numbersPages = 250,
-  });
-}
-
-class _StaticSubCategory {
-  final String id;
-  final String title;
-
-  const _StaticSubCategory({required this.id, required this.title});
-}
-
-class CategoryBooksScreen extends StatefulWidget {
+class CategoryBooksScreen extends WatchingWidget {
   final String categoryName;
   final String categoryId;
 
@@ -43,72 +22,50 @@ class CategoryBooksScreen extends StatefulWidget {
   });
 
   @override
-  State<CategoryBooksScreen> createState() => _CategoryBooksScreenState();
-}
-
-class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
-  bool isGridMode = true;
-  String? selectedSubCategoryId;
-
-  // بيانات تجريبية للتصنيفات الفرعية
-  final List<_StaticSubCategory> _subCategories = const [
-    _StaticSubCategory(id: 'sub_1', title: 'تطوير التطبيقات'),
-    _StaticSubCategory(id: 'sub_2', title: 'هندسة البرمجيات'),
-    _StaticSubCategory(id: 'sub_3', title: 'الذكاء الاصطناعي'),
-  ];
-
-  // بيانات تجريبية للكتب
-  final List<_StaticBook> _allBooks = const [
-    _StaticBook(
-      id: '1',
-      title: 'Clean Code (الكود النظيف)',
-      author: 'Robert C. Martin',
-      subCategoryId: 'sub_2',
-      publishingHouse: 'دار المعارف التقنية',
-      numbersPages: 464,
-    ),
-    _StaticBook(
-      id: '2',
-      title: 'احتراف تطوير تطبيقات Flutter',
-      author: 'أحمد المنصور',
-      subCategoryId: 'sub_1',
-      publishingHouse: 'دار الحكمة للنشر',
-      numbersPages: 320,
-    ),
-    _StaticBook(
-      id: '3',
-      title: 'مبادئ التصميم المعماري للأنظمة',
-      author: 'Martin Fowler',
-      subCategoryId: 'sub_2',
-      publishingHouse: 'مكتبة جرير',
-      numbersPages: 510,
-    ),
-    _StaticBook(
-      id: '4',
-      title: 'مقدمة في تعلم الآلة والذكاء الاصطناعي',
-      author: 'سارة العلي',
-      subCategoryId: 'sub_3',
-      publishingHouse: 'دار الفكر الحديث',
-      numbersPages: 280,
-    ),
-  ];
-
-  List<_StaticBook> get _displayedBooks {
-    if (selectedSubCategoryId == null) return _allBooks;
-    return _allBooks
-        .where((book) => book.subCategoryId == selectedSubCategoryId)
-        .toList();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final books = _displayedBooks;
+    final bloc = createOnce(
+      () => di<CategoryBooksBloc>(),
+      dispose: (b) => b.close(),
+    );
+
+    final subCategories = di<CategoryBloc>().state.allCategories
+        .where((c) => c.parentId == categoryId)
+        .toList();
+
+    callOnce((_) {
+      bloc.add(LoadBooksByCategoryEvent(categoryId));
+    });
+
+    final state =
+        watchStream(
+          (CategoryBooksBloc b) => b.stream,
+          target: bloc,
+          initialValue: bloc.state,
+        ).data ??
+        bloc.state;
+
+    registerStreamHandler(
+      target: bloc,
+      select: (CategoryBooksBloc b) => b.stream,
+      handler: (context, snapshot, cancel) {
+        final currentState = snapshot.data;
+        if (currentState == null) return;
+
+        if (currentState.status == CategoryBooksStatus.error &&
+            currentState.errorMessage != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(currentState.errorMessage!)));
+        }
+      },
+    );
+
+    final books = state.filteredBooks;
 
     return Scaffold(
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // 1. AppBar عصري مدمج ومتوافق مع لون الخلفية
           SliverAppBar(
             floating: true,
             pinned: true,
@@ -117,7 +74,7 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
             backgroundColor: const Color(0xFFF8F9FA),
             centerTitle: true,
             title: Text(
-              widget.categoryName,
+              categoryName,
               style: AppTextStyles.headlineSmall.copyWith(
                 color: const Color(0xFF1E293B),
                 fontWeight: FontWeight.bold,
@@ -158,24 +115,21 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
                     ),
                   ),
                   icon: Icon(
-                    isGridMode
+                    state.isGridMode
                         ? Icons.view_list_rounded
                         : Icons.grid_view_rounded,
                     color: AppColors.prim,
                     size: 20,
                   ),
                   onPressed: () {
-                    setState(() {
-                      isGridMode = !isGridMode;
-                    });
+                    bloc.add(const ToggleBookViewModeEvent());
                   },
                 ),
               ),
             ],
           ),
 
-          // 2. شريط التصنيفات الفرعية (Sub-categories Header)
-          if (_subCategories.isNotEmpty)
+          if (subCategories.isNotEmpty)
             SliverToBoxAdapter(
               child: Container(
                 height: 50,
@@ -184,31 +138,28 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _subCategories.length + 1,
+                  itemCount: subCategories.length + 1,
                   itemBuilder: (context, index) {
                     if (index == 0) {
-                      final isAllSelected = selectedSubCategoryId == null;
+                      final isAllSelected = state.selectedSubCategoryId == null;
                       return _buildSubCategoryChip(
                         title: 'الكل',
                         isSelected: isAllSelected,
                         onTap: () {
-                          setState(() {
-                            selectedSubCategoryId = null;
-                          });
+                          bloc.add(const FilterBySubCategoryEvent(null));
                         },
                       );
                     }
 
-                    final subCategory = _subCategories[index - 1];
-                    final isSelected = selectedSubCategoryId == subCategory.id;
+                    final subCategory = subCategories[index - 1];
+                    final isSelected =
+                        state.selectedSubCategoryId == subCategory.id;
 
                     return _buildSubCategoryChip(
                       title: subCategory.title,
                       isSelected: isSelected,
                       onTap: () {
-                        setState(() {
-                          selectedSubCategoryId = subCategory.id;
-                        });
+                        bloc.add(FilterBySubCategoryEvent(subCategory.id));
                       },
                     );
                   },
@@ -216,8 +167,11 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
               ),
             ),
 
-          // 3. عرض الكتب (Empty أو Grid/List)
-          if (books.isEmpty)
+          if (state.status == CategoryBooksStatus.loading)
+            const SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (books.isEmpty)
             SliverFillRemaining(
               child: Center(
                 child: Column(
@@ -242,7 +196,7 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
           else
             SliverPadding(
               padding: const EdgeInsets.all(16.0),
-              sliver: isGridMode
+              sliver: state.isGridMode
                   ? SliverGrid(
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
@@ -254,7 +208,11 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
                       delegate: SliverChildBuilderDelegate(
                         (context, index) =>
                             _buildBookGridItem(books[index], () {
-                              pushTo(context, AppRoutes.bookDetails);
+                              pushTo(
+                                context,
+                                AppRoutes.bookDetails,
+                                books[index],
+                              );
                             }),
                         childCount: books.length,
                       ),
@@ -263,7 +221,11 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
                       delegate: SliverChildBuilderDelegate(
                         (context, index) =>
                             _buildBookListItem(books[index], () {
-                              pushTo(context, AppRoutes.bookDetails);
+                              pushTo(
+                                context,
+                                AppRoutes.bookDetails,
+                                books[index],
+                              );
                             }),
                         childCount: books.length,
                       ),
@@ -274,7 +236,6 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
     );
   }
 
-  // تصميم Chip التصنيف الفرعي
   Widget _buildSubCategoryChip({
     required String title,
     required bool isSelected,
@@ -315,8 +276,8 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
     );
   }
 
-  // تصميم عنصر الكتاب في وضع الشبكة (Grid Item)
-  Widget _buildBookGridItem(_StaticBook book, void Function()? ontap) {
+  Widget _buildBookGridItem(BookEntity book, void Function()? ontap) {
+    final cover = book.coverUrl ?? '';
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -347,25 +308,19 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(20),
                       ),
-                      child: book.coverUrl.isNotEmpty
-                          ? Image.network(
-                              book.coverUrl,
+                      child: cover.isNotEmpty
+                          ? AppCachedImage(
+                              imageUrl: book.coverUrl,
                               width: double.infinity,
                               height: double.infinity,
-                              fit: BoxFit.cover,
-                            )
-                          : Container(
-                              color: AppColors.prim.withValues(alpha: 0.08),
-                              child: const Center(
-                                child: Icon(
-                                  Icons.book_rounded,
-                                  size: 40,
-                                  color: AppColors.prim,
-                                ),
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(20),
                               ),
-                            ),
+                              fallbackIcon: Icons.book_rounded,
+                              fallbackIconSize: 40,
+                            )
+                          : _buildPlaceholderIcon(),
                     ),
-                    // أيقونة مفضلة ستاتيكية بدون الاعتماد على Bloc
                     Positioned(
                       top: 8,
                       left: 8,
@@ -437,8 +392,8 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
     );
   }
 
-  // تصميم عنصر الكتاب في وضع القائمة (List Item)
-  Widget _buildBookListItem(_StaticBook book, void Function()? ontap) {
+  Widget _buildBookListItem(BookEntity book, void Function()? ontap) {
+    final cover = book.coverUrl ?? '';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -466,12 +421,14 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(14),
-                  child: book.coverUrl.isNotEmpty
-                      ? Image.network(
-                          book.coverUrl,
+                  child: cover.isNotEmpty
+                      ? AppCachedImage(
+                          imageUrl: book.coverUrl,
                           width: 70,
                           height: 95,
-                          fit: BoxFit.cover,
+                          borderRadius: BorderRadius.circular(14),
+                          fallbackIcon: Icons.book_rounded,
+                          fallbackIconSize: 30,
                         )
                       : Container(
                           width: 70,
@@ -521,9 +478,7 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              book.publishingHouse.isNotEmpty
-                                  ? book.publishingHouse
-                                  : 'دار النشر',
+                              book.publishingHouse ?? 'دار النشر',
                               style: const TextStyle(
                                 fontSize: 10,
                                 color: AppColors.prim,
@@ -548,6 +503,15 @@ class _CategoryBooksScreenState extends State<CategoryBooksScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholderIcon() {
+    return Container(
+      color: AppColors.prim.withValues(alpha: 0.08),
+      child: const Center(
+        child: Icon(Icons.book_rounded, size: 40, color: AppColors.prim),
       ),
     );
   }

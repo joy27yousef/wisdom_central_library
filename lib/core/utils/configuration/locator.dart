@@ -16,6 +16,11 @@ import 'package:wisdom_central_library/features/auth/domain/usecases/sign_out_us
 import 'package:wisdom_central_library/features/auth/domain/usecases/sign_up_usecase.dart';
 import 'package:wisdom_central_library/features/auth/domain/usecases/update_user_data_usecase.dart';
 import 'package:wisdom_central_library/features/auth/presentation/managers/auth_manager.dart';
+import 'package:wisdom_central_library/features/books/data/datasources/book_remote_data_source.dart';
+import 'package:wisdom_central_library/features/books/data/repositories/book_repository_impl.dart';
+import 'package:wisdom_central_library/features/books/domain/repositories/book_repository.dart';
+import 'package:wisdom_central_library/features/books/domain/usecases/get_books_by_category_usecase.dart';
+import 'package:wisdom_central_library/features/books/presentation/logic/bloc/category_books_bloc.dart';
 import 'package:wisdom_central_library/features/categories/data/repositories/category_repository_impl.dart';
 import 'package:wisdom_central_library/features/categories/data/datasources/category_remote_data_source.dart';
 import 'package:wisdom_central_library/features/categories/domain/repositories/category_repository.dart';
@@ -93,25 +98,40 @@ void setupLocator() {
   );
 
   // ----------------- Categories Feature -----------------
-  //  Data Sources
   sl.registerLazySingleton<CategoryRemoteDataSource>(
     () => CategoryRemoteDataSourceImpl(firestore: sl<FirebaseFirestore>()),
   );
 
-  // 2. Repositories
   sl.registerLazySingleton<CategoryRepository>(
     () => CategoryRepositoryImpl(
       remoteDataSource: sl<CategoryRemoteDataSource>(),
     ),
   );
 
-  // 3. Use Cases
   sl.registerLazySingleton<GetAllCategoriesUseCase>(
     () => GetAllCategoriesUseCase(sl<CategoryRepository>()),
   );
 
-  // 4. BLoC
   sl.registerLazySingleton<CategoryBloc>(
     () => CategoryBloc(getAllCategoriesUseCase: sl<GetAllCategoriesUseCase>()),
+  );
+
+  // ----------------- Books Feature -----------------
+  sl.registerLazySingleton<BookRemoteDataSource>(
+    () => BookRemoteDataSourceImpl(firestore: sl<FirebaseFirestore>()),
+  );
+
+  sl.registerLazySingleton<BookRepository>(
+    () => BookRepositoryImpl(remoteDataSource: sl<BookRemoteDataSource>()),
+  );
+
+  sl.registerLazySingleton<GetBooksByCategoryUseCase>(
+    () => GetBooksByCategoryUseCase(sl<BookRepository>()),
+  );
+
+  sl.registerFactory<CategoryBooksBloc>(
+    () => CategoryBooksBloc(
+      getBooksByCategoryUseCase: sl<GetBooksByCategoryUseCase>(),
+    ),
   );
 }
