@@ -20,6 +20,7 @@ class BookModel extends BookEntity {
     super.downloadCount,
     super.favotitesCount,
     super.loan,
+    super.publishedAt,
     super.purchase,
   });
 
@@ -39,6 +40,7 @@ class BookModel extends BookEntity {
       rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
       isAvailable: data['isAvailable'] as bool? ?? true,
       createdAt: data['createdAt'] as Timestamp?,
+      publishedAt: data['publishedAt'] as String? ?? '',
       localization: data['localization'] as String?,
       downloadCount: (data['downloadCount'] as num?)?.toInt(),
       favotitesCount: (data['favotitesCount'] as num?)?.toInt(),
@@ -57,6 +59,7 @@ class BookModel extends BookEntity {
       'categoryId': categoryId,
       'subCategoryId': subCategoryId,
       'publishingHouse': publishingHouse,
+      'publishedAt': publishedAt,
       'numbersPages': numbersPages,
       'rating': rating,
       'isAvailable': isAvailable,

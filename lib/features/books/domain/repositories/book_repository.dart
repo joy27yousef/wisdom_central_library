@@ -6,4 +6,7 @@ abstract class BookRepository {
   Future<Either<Failure, List<BookEntity>>> getBooksByCategory(
     String categoryId,
   );
+
+  Future<Either<Failure, BookEntity>> getBookDetails(String bookId);
+  Future<Either<Failure, Unit>> incrementDownloadCount(String bookId);
 }

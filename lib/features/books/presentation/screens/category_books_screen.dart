@@ -10,6 +10,7 @@ import 'package:wisdom_central_library/features/books/presentation/logic/bloc/ca
 import 'package:wisdom_central_library/features/books/presentation/logic/bloc/category_books_event.dart';
 import 'package:wisdom_central_library/features/books/presentation/logic/bloc/category_books_state.dart';
 import 'package:wisdom_central_library/features/categories/presentation/logic/bloc/category_bloc.dart';
+import 'package:wisdom_central_library/features/favorites/presentation/screens/widgets/favorite_button.dart';
 
 class CategoryBooksScreen extends WatchingWidget {
   final String categoryName;
@@ -324,18 +325,7 @@ class CategoryBooksScreen extends WatchingWidget {
                     Positioned(
                       top: 8,
                       left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.favorite_border_rounded,
-                          size: 18,
-                          color: Colors.redAccent,
-                        ),
-                      ),
+                      child: FavoriteButton(bookId: book.id),
                     ),
                   ],
                 ),
@@ -446,14 +436,20 @@ class CategoryBooksScreen extends WatchingWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        book.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            book.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          FavoriteButton(bookId: book.id),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(

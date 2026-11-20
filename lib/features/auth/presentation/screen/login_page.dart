@@ -39,10 +39,8 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final authManager = di<AuthManager>();
 
-    // مراقبة حالة التحميل
     final isLoading = watch(authManager.signInCommand.isRunning).value;
 
-    // ✅ الاستماع لنجاح تسجيل الدخول
     registerHandler<AuthManager, UserEntity>(
       select: (m) => m.signInCommand,
       handler: (context, user, cancel) {

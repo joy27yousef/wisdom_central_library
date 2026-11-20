@@ -9,6 +9,7 @@ class BookEntity extends Equatable {
   final String? subCategoryId;
   final String? coverUrl;
   final Timestamp? createdAt;
+  final String? publishedAt;
   final String? description;
   final String? localization;
   final int? downloadCount;
@@ -35,6 +36,7 @@ class BookEntity extends Equatable {
     this.rating = 0.0,
     this.isAvailable = false,
     this.createdAt,
+    this.publishedAt,
     this.localization,
     this.downloadCount,
     this.favotitesCount,
@@ -62,5 +64,6 @@ class BookEntity extends Equatable {
     favotitesCount,
     loan,
     purchase,
+    publishedAt,
   ];
 }

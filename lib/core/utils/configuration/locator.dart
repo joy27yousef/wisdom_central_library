@@ -19,13 +19,23 @@ import 'package:wisdom_central_library/features/auth/presentation/managers/auth_
 import 'package:wisdom_central_library/features/books/data/datasources/book_remote_data_source.dart';
 import 'package:wisdom_central_library/features/books/data/repositories/book_repository_impl.dart';
 import 'package:wisdom_central_library/features/books/domain/repositories/book_repository.dart';
+import 'package:wisdom_central_library/features/books/domain/usecases/get_book_details_usecase.dart';
 import 'package:wisdom_central_library/features/books/domain/usecases/get_books_by_category_usecase.dart';
+import 'package:wisdom_central_library/features/books/domain/usecases/increment_download_count_usecase.dart';
+import 'package:wisdom_central_library/features/books/presentation/logic/bloc/book_details_bloc.dart';
 import 'package:wisdom_central_library/features/books/presentation/logic/bloc/category_books_bloc.dart';
 import 'package:wisdom_central_library/features/categories/data/repositories/category_repository_impl.dart';
 import 'package:wisdom_central_library/features/categories/data/datasources/category_remote_data_source.dart';
 import 'package:wisdom_central_library/features/categories/domain/repositories/category_repository.dart';
 import 'package:wisdom_central_library/features/categories/domain/usecase/get_all_categories_usecase.dart';
 import 'package:wisdom_central_library/features/categories/presentation/logic/bloc/category_bloc.dart';
+import 'package:wisdom_central_library/features/favorites/data/datasources/favourite_remote_data_source.dart';
+import 'package:wisdom_central_library/features/favorites/data/repositories/favourite_repository_impl.dart';
+import 'package:wisdom_central_library/features/favorites/domain/repositories/favourite_repository.dart';
+import 'package:wisdom_central_library/features/favorites/domain/usecases/get_favourites_usecase.dart';
+import 'package:wisdom_central_library/features/favorites/domain/usecases/remove_favourite_usecase.dart';
+import 'package:wisdom_central_library/features/favorites/domain/usecases/toggle_favourite_usecase.dart';
+import 'package:wisdom_central_library/features/favorites/presentation/logic/bloc/favourite_bloc.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -134,4 +144,71 @@ void setupLocator() {
       getBooksByCategoryUseCase: sl<GetBooksByCategoryUseCase>(),
     ),
   );
+  // Use Cases
+
+  sl.registerLazySingleton<GetBookDetailsUseCase>(
+    () => GetBookDetailsUseCase(sl<BookRepository>()),
+  );
+  sl.registerLazySingleton<IncrementDownloadCountUseCase>(
+    () => IncrementDownloadCountUseCase(sl<BookRepository>()),
+  );
+
+  // BLoCs
+
+  sl.registerFactory<BookDetailsBloc>(
+    () => BookDetailsBloc(
+      getBookDetailsUseCase: sl<GetBookDetailsUseCase>(),
+
+      incrementDownloadCountUseCase: sl<IncrementDownloadCountUseCase>(),
+    ),
+  );
+
+// ----------------- Favorites Feature -----------------
+  // Remote Data Source (كان مفقوداً هنا)
+  if (!sl.isRegistered<FavouriteRemoteDataSource>()) {
+    sl.registerLazySingleton<FavouriteRemoteDataSource>(
+      () => FavouriteRemoteDataSourceImpl(
+        firestore: sl<FirebaseFirestore>(),
+        firebaseAuth: sl<FirebaseAuth>(),
+      ),
+    );
+  }
+
+  // Repository
+  if (!sl.isRegistered<FavouriteRepository>()) {
+    sl.registerLazySingleton<FavouriteRepository>(
+      () => FavouriteRepositoryImpl(
+        remoteDataSource: sl<FavouriteRemoteDataSource>(),
+      ),
+    );
+  }
+
+  // UseCases
+  if (!sl.isRegistered<GetFavouritesUseCase>()) {
+    sl.registerLazySingleton<GetFavouritesUseCase>(
+      () => GetFavouritesUseCase(sl<FavouriteRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<ToggleFavouriteUseCase>()) {
+    sl.registerLazySingleton<ToggleFavouriteUseCase>(
+      () => ToggleFavouriteUseCase(sl<FavouriteRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<RemoveFavouriteUseCase>()) {
+    sl.registerLazySingleton<RemoveFavouriteUseCase>(
+      () => RemoveFavouriteUseCase(sl<FavouriteRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<FavouriteBloc>()) {
+    sl.registerLazySingleton<FavouriteBloc>(
+      () => FavouriteBloc(
+        getFavouritesUseCase: sl<GetFavouritesUseCase>(),
+        toggleFavouriteUseCase: sl<ToggleFavouriteUseCase>(),
+        removeFavouriteUseCase: sl<RemoveFavouriteUseCase>(),
+      ),
+    );
+  }
 }
